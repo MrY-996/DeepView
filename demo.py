@@ -126,3 +126,4 @@ if __name__ == "__main__":
     json_str = json.dumps(deepview_result, indent=4)
     with open('./data/deepview_result', 'w') as json_file:
         json_file.write(json_str)
+    print('test')
