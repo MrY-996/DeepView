@@ -7,9 +7,12 @@ import my_transforms
 from Metrics import Metrics
 from evaluation import Evaluation
 from modelcodes.models.detection import fasterrcnn_resnet50_fpn_v2, FasterRCNN_ResNet50_FPN_V2_Weights
+
 from torchvision.utils import draw_bounding_boxes
 from torchvision.transforms.functional import to_pil_image
 from tqdm import tqdm
+
+
 from my_dataset import COCOdataset
 import json
 
@@ -20,7 +23,7 @@ coco_root = './data/coco2017'
 batchsize = 1
 
 
-def Inference():
+def Inference(datapath='./data/FRCNN_COCO070.json'):
     def transxywh(bbx):
         bbx[2] = bbx[2] - bbx[0]
         bbx[3] = bbx[3] - bbx[1]
@@ -66,11 +69,11 @@ def Inference():
                     results.append(content_dic)
 
         json_str = json.dumps(results, indent=4)
-        with open('./data/FRCNN_COCO070.json', 'w') as json_file:
+        with open(datapath, 'w') as json_file:
             json_file.write(json_str)
 
 
-def DeepView(datapath):
+def DeepView(datapath='./data/FRCNN_COCO070.json'):
     with open(datapath) as f1:
         pre_list = json.load(f1)
     eva = Evaluation(datatype='COCO')
@@ -121,9 +124,9 @@ def DeepView(datapath):
 if __name__ == "__main__":
     Inference()  # Model Inference
 
-    deepview_result = DeepView(datapath='./data/FRCNN_COCO070.json')
+    deepview_result = DeepView()
 
     json_str = json.dumps(deepview_result, indent=4)
     with open('./data/deepview_result', 'w') as json_file:
         json_file.write(json_str)
-    print('test')
+
