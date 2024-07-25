@@ -1,4 +1,5 @@
 /data/coco2017/*
+!/data/coco2017/.gitkeep
 /data/VOCdevkit/*
 *.json
 /data/deepview_result
