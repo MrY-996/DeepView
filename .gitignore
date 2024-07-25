@@ -1,0 +1,4 @@
+/data/coco2017/*
+/data/VOCdevkit/*
+*.json
+/data/deepview_result

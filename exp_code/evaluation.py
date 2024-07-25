@@ -27,7 +27,7 @@ class Evaluation():
             self.imgid_list = sorted([x['image_id'] for x in self.true_list])
 
         if datatype == 'COCO':
-            with open('coco2017/annotations/instances_val2017.json') as f:
+            with open('../data/coco2017/annotations/instances_val2017.json') as f:
                 self.true_list = json.load(f)
             self.GT_list = self.true_list["annotations"]
             self.id2gtbbx = {x['id']: [] for x in self.true_list['images']}

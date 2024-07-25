@@ -10,6 +10,14 @@ import seaborn as sns
 
 class visualization():
     def plt_fault_type_rauc(self, srtd_fault_list, fault_type_num):
+        """
+        绘制错误类型RAUC曲线
+        :param srtd_fault_list:排序后的错误列表（srtd=sorted）
+        :param fault_type_num:错误类型的数量。
+        :return X:从0到srtd_fault_list长度-1的整数列表。
+        :return Y:用于存储随时间变化的错误类型的数量
+        :return Tro:如果索引i小于 fault_type_num，则取值为i；否则取值为 fault_type_num
+        """
         fault_set = set()
         Y = []
         for x in srtd_fault_list:

@@ -2,11 +2,14 @@ import json
 
 from tqdm import tqdm
 
-with open('../data/FRCNN_COCO000.json') as f1:
+# read the predict data file —— instance-level
+with open('../data/FRCNN_COCO070.json') as f1:
     pre_list = json.load(f1)
-with open('../coco2017/annotations/instances_val2017.json') as f:
+# read the truth data file
+with open('../data/coco2017/annotations/instances_val2017.json') as f:
     true_list = json.load(f)
 print(len(pre_list))
+# 给每张图片构建一个空分数列表
 id2scores = {x['id']: [] for x in true_list['images']}
 print(len(id2scores))
 for x in tqdm(pre_list):

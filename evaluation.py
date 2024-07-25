@@ -142,14 +142,18 @@ class Evaluation():
         for img_id in self.imgid_list:
             if self.id2prebbx[img_id] == []:
                 continue
-            ious = self.get_iou(self.id2prebbx[img_id], self.id2gtbbx[img_id])
-            iousval = torch.max(ious, dim=1).values.numpy()
-            inds = torch.max(ious, dim=1).indices.numpy()
-            prelabel = self.id2prelabel[img_id]
+            ious = self.get_iou(self.id2prebbx[img_id], self.id2gtbbx[img_id])  # 计算预测边界框和真实边界框的 IoU（交并比）。
+            iousval = torch.max(ious, dim=1).values.numpy()  # 获取每个预测边界框与真实边界框的最大 IoU 值
+            inds = torch.max(ious, dim=1).indices.numpy()  # 及其对应的索引。
+            prelabel = self.id2prelabel[img_id]  # 获取该图片的预测标签。
+            # 根据最大 IoU 值和索引，生成对应的真实标签。如果索引超出范围或者 IoU 值小于 0.5，则设置真实标签为 -1。
             gtlabel = [
                 -1 if inds[i] >= len(self.id2gtlabel[img_id]) or iousval[i] < 0.5 else self.id2gtlabel[img_id][inds[i]]
                 for
                 i in range(len(inds))]
+            # 遍历每个预测标签，比较预测标签和真实标签：
+            # 如果预测标签和真实标签不一致，记录该错误类型到 faults 字典中，并将其添加到 fault_list。
+            # 如果预测标签和真实标签一致，直接将其添加到 fault_list
             for i in range(len(prelabel)):
                 if prelabel[i] != gtlabel[i]:
                     if faults.get((gtlabel[i], prelabel[i]), -1) == -1:
@@ -180,17 +184,19 @@ class Evaluation():
             gtlosslist[:5000]), sum(metriclosslist) / sum(gtlosslist)
 
     def RAUC_cls(self, metric_tplist):
-        gt_tplist = sorted(metric_tplist)[::-1]
+        gt_tplist = sorted(metric_tplist)[::-1]  # 将输入的 metric_tplist 列表进行排序，并反转顺序（降序排序）
         x_list = [0]
+        # 遍历排序后的 gt_tplist 列表，从第二个元素开始
         for i in range(1, len(gt_tplist)):
-            gt_tplist[i] = gt_tplist[i] + gt_tplist[i - 1]
-            metric_tplist[i] = metric_tplist[i] + metric_tplist[i - 1]
+            # 当前元素的累积值等于前一个元素的累积值加上当前元素的值
+            gt_tplist[i] = gt_tplist[i] + gt_tplist[i - 1]  # 累积后的真实标签列表——错误标签的数量
+            metric_tplist[i] = metric_tplist[i] + metric_tplist[i - 1]  # 累积后的模型输出列表——发现错误数量
+            # 将当前索引添加到 x 轴列表
             x_list.append(i)
         return x_list, gt_tplist, metric_tplist, sum(metric_tplist[:500]) / sum(gt_tplist[:500]), sum(
             metric_tplist[:1000]) / sum(
             gt_tplist[:1000]), sum(metric_tplist[:2000]) / sum(gt_tplist[:2000]), sum(metric_tplist[:5000]) / sum(
             gt_tplist[:5000]), sum(metric_tplist) / sum(gt_tplist)
-
 
 # if __name__ == "__main__":
 #     test = Evaluation()

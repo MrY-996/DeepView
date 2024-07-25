@@ -7,11 +7,11 @@ from RQ3engine import RQ3engine
 
 
 def RUN_RQ_12(score_throd, modeltype, datatype, runtype):
-    with open('./data/' + runtype + modeltype + '_' + datatype + score_throd + '.json') as f1:
+    with open('../data/' + runtype + modeltype + '_' + datatype + score_throd + '.json') as f1:
         pre_list = json.load(f1)
     # with open('./data/' + runtype + 'gaus_' + modeltype + '_' + datatype + score_throd + '.json') as f1:
     #     dif_list = json.load(f1)
-    with open('./data/' + runtype + modeltype + '_' + datatype + 'image.json') as f2:
+    with open('../data/' + runtype + modeltype + '_' + datatype + 'image.json') as f2:
         imgpre_list = json.load(f2)
     lamda = 1
 
@@ -41,6 +41,8 @@ def RUN_RQ_12(score_throd, modeltype, datatype, runtype):
     vis = visualization()
     X = []
     Tro_diversity = []
+
+
     x_list = []
     Tro_effective = []
     # fig = plt.figure(figsize=(18, 10), dpi=100)
@@ -52,6 +54,8 @@ def RUN_RQ_12(score_throd, modeltype, datatype, runtype):
     #           fontweight='bold', bbox=dict(edgecolor='blue', alpha=0.65))
     # effective.set_title('effective')
     # diversity.set_title('diversity')
+
+
     row = []
     val = []
     for i in range(len(result)):
@@ -66,7 +70,10 @@ def RUN_RQ_12(score_throd, modeltype, datatype, runtype):
         plt.plot(X, Y, label=metric_names[i],color=colorlist[i])
         x_list, Tro_effective, y_list, rauc_1, rauc_2, rauc_3, rauc_5, rauc_all = eva.RAUC_cls(
             metric_tplist=srtd_tp_list[::-1])
-        print(metric_names[i]+'div:'+' '+str(sum(Y)/sum(Tro_diversity)*100))
+        print(metric_names[i] + ' diversity: RAUC =' + ' ' + str(round(sum(Y) / sum(Tro_diversity) * 100, 2)))
+        print(metric_names[i] + ' effectiveness: RAUC-n = ' + str(
+            [round(rauc_1 * 100, 2), round(rauc_2 * 100, 2), round(rauc_3 * 100, 2), round(rauc_5 * 100, 2),
+             round(rauc_all * 100, 2)]))
         # plt.plot(x_list, y_list, label=metric_names[i])
         val.append([round(rauc_1 * 100, 2), round(rauc_2 * 100, 2), round(rauc_3 * 100, 2), round(rauc_5 * 100, 2),
                     round(rauc_all * 100, 2)])
@@ -91,12 +98,12 @@ def RUN_RQ_12(score_throd, modeltype, datatype, runtype):
     # effective.legend()
     plt.legend()
     # plt.show()
-    plt.savefig(
-        'C:/Users/WSHdeWindows/Desktop/picture/RQ2new/RQ2' + modeltype + '_' + datatype + '_' + score_throd + '.pdf')
     # plt.savefig(
-    #     './pictures/' + runtype + modeltype + '_' + datatype + '_' + 'T=' + str(int(score_throd) / 100) + '.png',
-    #     bbox_inches='tight', dpi=800)
+        # 'C:/Users/WSHdeWindows/Desktop/picture/RQ2new/RQ2' + modeltype + '_' + datatype + '_' + score_throd + '.pdf')
+    plt.savefig(
+        '../pictures/' + runtype + modeltype + '_' + datatype + '_' + 'T=' + str(int(score_throd) / 100) + '.png',
+        bbox_inches='tight', dpi=800)
     plt.show()
 
 if __name__ == "__main__":
-    RUN_RQ_12(score_throd='050', modeltype='SSD', datatype='VOC', runtype='')
+    RUN_RQ_12(score_throd='070', modeltype='FRCNN', datatype='COCO', runtype='')

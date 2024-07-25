@@ -61,4 +61,6 @@ class visualization():
 
 if __name__ == "__main__":
     vis = visualization()
-    vis.draw_distribution(score_throd='030', modeltype='SSD', datatype='COCO', sel_num=50)
+    # vis.draw_distribution(score_throd='030', modeltype='SSD', datatype='COCO', sel_num=50)
+    vis.draw_distribution(score_throd='070', modeltype='FRCNN', datatype='COCO', sel_num=50)
+    # E:\DeepView\DeepView\data\FRCNN_COCO070.json
