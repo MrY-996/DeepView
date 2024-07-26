@@ -1,0 +1,18 @@
+2024-07-26 13:16:34,406 - INFO - modeltype=FRCNN,datatype=COCO,score_throd=0.7
+2024-07-26 13:16:43,876 - INFO - DeepView APFD = 0.724
+2024-07-26 13:16:43,876 - INFO - DeepView RAUC-500 = 74.07
+2024-07-26 13:16:48,003 - INFO - modeltype=FRCNN,datatype=COCO,score_throd=0.8
+2024-07-26 13:30:48,833 - INFO - DeepView APFD = 0.739
+2024-07-26 13:30:48,834 - INFO - DeepView RAUC-500 = 62.48
+2024-07-26 13:30:52,326 - INFO - modeltype=FRCNN,datatype=COCO,score_throd=0.9
+2024-07-26 13:44:26,425 - INFO - DeepView APFD = 0.748
+2024-07-26 13:44:26,425 - INFO - DeepView RAUC-500 = 44.34
+2024-07-26 13:44:29,097 - INFO - modeltype=SSD,datatype=COCO,score_throd=0.5
+2024-07-26 13:44:34,725 - INFO - DeepView APFD = 0.744
+2024-07-26 13:44:34,725 - INFO - DeepView RAUC-500 = 44.44
+2024-07-26 13:44:36,184 - INFO - modeltype=SSD,datatype=COCO,score_throd=0.6
+2024-07-26 13:49:46,182 - INFO - DeepView APFD = 0.747
+2024-07-26 13:49:46,183 - INFO - DeepView RAUC-500 = 36.77
+2024-07-26 13:49:47,557 - INFO - modeltype=SSD,datatype=COCO,score_throd=0.7
+2024-07-26 13:56:10,012 - INFO - DeepView APFD = 0.741
+2024-07-26 13:56:10,012 - INFO - DeepView RAUC-500 = 29.51

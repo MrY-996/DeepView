@@ -1,15 +1,17 @@
+import logging
 import os.path
 import shutil
 
 import numpy as np
 import torch
 from PIL import Image, ImageOps
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, patches
 from torchvision.io.image import read_image
 import cv2
 import my_transforms
 from Metrics import Metrics
 from evaluation import Evaluation
+from exp_code import transforms2
 from modelcodes.models.detection import fasterrcnn_resnet50_fpn_v2, FasterRCNN_ResNet50_FPN_V2_Weights, \
     SSD300_VGG16_Weights, ssd300_vgg16
 
@@ -21,6 +23,16 @@ from my_dataset import COCOdataset, VOCDataSet
 import json
 
 from visualization import visualization
+
+# 设置日志记录
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler = logging.FileHandler('result.log')
+file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 device = "cuda"
 coco_root = './data/coco2017'
@@ -86,6 +98,9 @@ def Inference(modeltype='FRCNN', datatype='COCO', score_throd=0.7):
     if datatype == 'COCO':
         val_dataset = COCOdataset(coco_root, "val", data_transform)
     elif datatype == 'VOC':
+        data_transform = {
+            "val": transforms2.Compose([transforms2.ToTensor()])
+        }
         val_dataset = VOCDataSet(VOC_root, "2012", data_transform['val'], "val.txt", ex_transforms=None)
 
     val_dataset_loader = torch.utils.data.DataLoader(val_dataset,
@@ -167,14 +182,17 @@ def DeepView(datapath='./data/FRCNN_COCO070.json'):
         # 计算并打印有效性和多样性指标，rauc_1-500, rauc_2-1000, rauc_3-2000, rauc_5-5000,rauc_all-全部
         x_list, Tro_effective, y_list, rauc_1, rauc_2, rauc_3, rauc_5, rauc_all = eva.RAUC_cls(
             metric_tplist=srtd_tp_list[::-1])
+
         # 计算APFD分数
         print(f'{metric_names[i]} APFD = {round(cal_APFD(srtd_tp_list), 3)}')
+        logger.info(f'{metric_names[i]} APFD = {round(cal_APFD(srtd_tp_list), 3)}')
         # 表示检测到的错误类型数量占理论最大值的RAUC值。
         print(metric_names[i] + ' diversity: RAUC =' + ' ' + str(round(sum(Y) / sum(Tro_diversity) * 100, 2)))
         # plt.plot(x_list, y_list, label=metric_names[i])
         print(metric_names[i] + ' effectiveness: RAUC-n = ' + str(
             [round(rauc_1 * 100, 2), round(rauc_2 * 100, 2), round(rauc_3 * 100, 2), round(rauc_5 * 100, 2),
              round(rauc_all * 100, 2)]))
+        logger.info(f'{metric_names[i]} RAUC-500 = {round(rauc_1 * 100, 2)}')
 
     # 绘制理论多样性曲线
     plt.plot(X, Tro_diversity, label='Theoretical', color='tab:blue')
@@ -183,12 +201,65 @@ def DeepView(datapath='./data/FRCNN_COCO070.json'):
     plt.ylabel('$Number\ of\ error\ type\ detected$')
 
     plt.legend()
-
     plt.show()
 
     return deepview_instance
 
-def process_image(deepvirw_result_path, image_path, output_folder, topk = 5):
+def transxyxy(bbx):
+        return [bbx[0], bbx[1], bbx[0] + bbx[2], bbx[1] + bbx[3]]
+
+def draw_gt_boxes(image_path, output_gt_image_file, image_id, id2gtbbx, id2gtlabel):
+    """
+    绘画真实边框
+    :param image_path: 图片路径
+    :param output_gt_image_file:图片输出路径
+    :param image_id: 图片id
+    :param id2gtbbx: id-gtbox字典
+    :param id2gtlabel: id-label字典
+    """
+    # 加载图片
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Image not found: {image_path}")
+        return
+
+    # 将图片转化成RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # 获取真实边框和label
+    gt_boxes = id2gtbbx.get(image_id, [])
+    gt_labels = id2gtlabel.get(image_id, [])
+
+    # 创建图片
+    fig, ax = plt.subplots(1)
+    ax.imshow(image)
+    ax.axis('off')  # 隐藏坐标轴
+
+    # 绘制真实边框
+    for bbox, label in zip(gt_boxes, gt_labels):
+        x_min, y_min, x_max, y_max = bbox
+        rect = patches.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min, linewidth=1, edgecolor='green',
+                                 facecolor='none')
+        ax.add_patch(rect)
+        ax.text(x_min, y_min - 10, str(label), color='green', fontsize=12)
+
+
+    plt.savefig(output_gt_image_file, bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
+
+
+
+def process_image(deepvirw_result_path, image_path, output_folder, topk = 5, datatype = 'COCO'):
+    if datatype == 'COCO':
+        with open('./data/instances_val2017.json') as f:
+            true_list = json.load(f)
+        GT_list = true_list["annotations"]
+        id2gtbbx = {x['id']: [] for x in true_list['images']}
+        id2gtlabel = {x['id']: [] for x in true_list['images']}
+        for x in GT_list:
+            id2gtbbx[x['image_id']] = id2gtbbx[x['image_id']] + [transxyxy(x['bbox'])]
+            id2gtlabel[x['image_id']] = id2gtlabel[x['image_id']] + [x['category_id']]
+
     # 读取deepvirw_result.json文件
     assert os.path.exists(deepvirw_result_path)
     with open(deepvirw_result_path) as f:
@@ -200,14 +271,20 @@ def process_image(deepvirw_result_path, image_path, output_folder, topk = 5):
 
     process_image_list = deepvirw_result_json[:topk]
     for image in process_image_list:
-        image_id = f"{int(image['image_id']):012d}"
+        image_id = image['image_id']
+        image_id_path = f"{int(image['image_id']):012d}"
         bbox = image['bbox']
-        image_file = os.path.join(image_path, f"{image_id}.jpg")
+        pre_category_id = image['category_id']
+        image_file = os.path.join(image_path, f"{image_id_path}.jpg")
         if not os.path.exists(image_file):
             print(f"图像文件 {image_file} 不存在")
             return
+
+        output_gt_image_file = os.path.join(output_folder, f"{image_id_path}_origin.png")
+        draw_gt_boxes(image_file, output_gt_image_file, image_id, id2gtbbx, id2gtlabel)
+
         # 复制图像文件到输出文件夹
-        output_image_file = os.path.join(output_folder, f"{image_id}.jpg")
+        output_image_file = os.path.join(output_folder, f"{image_id_path}.jpg")
         shutil.copy(image_file, output_image_file)
         # 打开图像
         image = Image.open(output_image_file).convert("RGB")
@@ -223,38 +300,52 @@ def process_image(deepvirw_result_path, image_path, output_folder, topk = 5):
         # 获取边界框坐标
         x_min, y_min, width, height = map(int, bbox)
         x_max, y_max = x_min + width, y_min + height
-        # x_min, y_min, x_max, y_max = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
 
         # 将bbox区域的彩色部分覆盖到灰度图像中
         gray_image_np[y_min:y_max, x_min:x_max] = image_np[y_min:y_max, x_min:x_max]
-        red_color = (255,0,0)  # OpenCV uses BGR by default
-        thickness = 2  # Thickness of the border
-        gray_image_np = cv2.rectangle(gray_image_np, (x_min, y_min), (x_max, y_max), red_color, thickness)
+        # 创建一个Matplotlib图像
+        fig, ax = plt.subplots(1)
+        ax.imshow(gray_image_np)
+        ax.axis('off')  # Hide the axis
 
-        # 转换回Pillow图像格式
-        final_image = Image.fromarray(gray_image_np)
+        # 添加红色边框
+        red_color = (1, 0, 0)  # Matplotlib uses RGB
+        rect = patches.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min, linewidth=1, edgecolor='red',
+                                 facecolor='none')
+        ax.add_patch(rect)
+
+        # 在边界框上添加pre_category_id
+        ax.text(x_min, y_min - 10, str(pre_category_id), color=red_color, fontsize=12)
 
         # 保存处理后的图像
-        final_image.save(output_image_file)
-        print(f"图像 {image_id} 已处理并保存到 {output_image_file}")
+        plt.savefig(output_image_file, bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+        print(f"图像 {image_id_path} 已处理并保存到 {output_image_file},pre_category_id = {pre_category_id}")
 
 
 
 
 
 if __name__ == "__main__":
-    # modeltype = 'FRCNN'
-    # datatype = 'COCO'
-    # score_throd = 0.7
-    # score_throd_str = f"{int(score_throd * 100):03d}"
-    # datapath = f'./data/{modeltype}_{datatype}{score_throd_str}.json'
-    #
-    # if not os.path.exists(datapath):
-    #     Inference(modeltype=modeltype, datatype=datatype, score_throd=score_throd)  # Model Inference
-    #
-    # deepview_result = DeepView(datapath)
-    # json_str = json.dumps(deepview_result, indent=4)
-    # with open('./data/deepview_result', 'w') as json_file:
-    #     json_file.write(json_str)
+    visual_flag = True
 
-    process_image('./data/deepview_result', './data/coco2017/val2017/', './data/output_pictures', 20)
+    modeltype_list = ['FRCNN', 'SSD']
+    datatype_list = ['COCO']
+    score_throd_list = {'FRCNN': [0.7, 0.8, 0.9], 'SSD': [0.5, 0.6, 0.7]}
+    for modeltype in modeltype_list:
+        for datatype in datatype_list:
+            for score_throd in score_throd_list[modeltype]:
+                logger.info(f'modeltype={modeltype},datatype={datatype},score_throd={score_throd}')
+                score_throd_str = f"{int(score_throd * 100):03d}"
+                datapath = f'./data/{modeltype}_{datatype}{score_throd_str}.json'
+
+                if not os.path.exists(datapath):
+                    Inference(modeltype=modeltype, datatype=datatype, score_throd=score_throd)  # Model Inference
+
+                deepview_result = DeepView(datapath)
+                json_str = json.dumps(deepview_result, indent=4)
+                with open('./data/deepview_result', 'w') as json_file:
+                    json_file.write(json_str)
+
+    if visual_flag:
+        process_image('./data/deepview_result', './data/coco2017/val2017/', './data/output_pictures', 100)
